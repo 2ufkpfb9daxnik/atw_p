@@ -53,6 +53,13 @@ class SettingsWindow(QWidget):
             font = QFont("", new_size)
         self.app.setFont(font)
 
+        # ジオメトリ/レイアウトを再計算してウィンドウが縮むようにする
+        QApplication.processEvents()
+        for widget in QApplication.topLevelWidgets():
+            widget.updateGeometry()
+            widget.adjustSize()
+            widget.repaint()
+
 def main():
     app = QApplication([])
 
