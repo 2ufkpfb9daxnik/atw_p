@@ -1,5 +1,5 @@
-from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QCheckBox, QLabel, QCheckBox
-from PyQt6.QtGui import QFontDatabase, QFont
+from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QCheckBox, QSizePolicy
+from PyQt6.QtGui import QFontDatabase, QFont, QFontMetrics
 import os
 from prompt_widget import PromptWidget
 from settings import SettingsWindow
@@ -89,9 +89,9 @@ def main():
     root_layout = QHBoxLayout()
     root_layout.addLayout(left_controls)
     root_layout.addLayout(right_area)
+    window.setLayout(root_layout)
 
     # 表示
-    window.setLayout(root_layout)
     window.show()
     app.processEvents()
     try:
