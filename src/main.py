@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, QSpinBox, QLabel
+from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QCheckBox, QLabel, QCheckBox
 from PyQt6.QtGui import QFontDatabase, QFont
 import os
 from prompt_widget import PromptWidget
@@ -19,21 +19,54 @@ def main():
     # ウィンドウ初期化
     window = QWidget()
     window.setWindowTitle("atw")
-    layout = QVBoxLayout()
 
-    # お題ウィジェット
-    prompt_path = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "data", "prompt.json"))
-    prompt_widget = PromptWidget(prompt_path)
-    layout.addWidget(prompt_widget)
+    # 左側のコントロール群
+    left_controls = QVBoxLayout()
+    left_controls.addStretch()#空きスペースを伸ばして上に寄せる
+
+    # 変換モード切替チェックボックス
+    convert_checkbox_on = QCheckBox("変換あり")
+    convert_checkbox_off = QCheckBox("変換なし")
+    convert_checkbox_on.setChecked(False)
+    convert_checkbox_off.setChecked(True)
+    left_controls.addWidget(convert_checkbox_on)
+    left_controls.addWidget(convert_checkbox_off)
+
+    def on_convert(checked: bool):
+        if checked:
+            convert_checkbox_off.blockSignals(True)
+            convert_checkbox_off.setChecked(False)
+            convert_checkbox_off.blockSignals(False)
+            prompt_widget.conversion_enabled = True
+        else:
+            if not convert_checkbox_off.isChecked():
+                convert_checkbox_on.blockSignals(True)
+                convert_checkbox_on.setChecked(True)
+                convert_checkbox_on.blockSignals(False)
+    
+    def off_convert(checked: bool):
+        if checked:
+            convert_checkbox_on.blockSignals(True)
+            convert_checkbox_on.setChecked(False)
+            convert_checkbox_on.blockSignals(False)
+            prompt_widget.conversion_enabled = False
+        else:
+            if not convert_checkbox_on.isChecked():
+                convert_checkbox_off.blockSignals(True)
+                convert_checkbox_off.setChecked(True)
+                convert_checkbox_off.blockSignals(False)
+
+    convert_checkbox_on.toggled.connect(on_convert)
+    convert_checkbox_off.toggled.connect(off_convert)
 
     # 設定ウィンドウ表示ボタン
     settings_button = QPushButton("設定")
-    layout.addWidget(settings_button)
+    left_controls.addWidget(settings_button)
 
     # プログラム終了ボタン
     exit_button = QPushButton("終了")
     exit_button.clicked.connect(app.quit)
-    layout.addWidget(exit_button)
+    left_controls.addWidget(exit_button)
 
     # 設定ウィンドウ表示ボタンの動作
     loaded_family = app.font().family()
@@ -44,8 +77,21 @@ def main():
         settings_window.activateWindow()
     settings_button.clicked.connect(open_settings)
 
-    # レイアウト設定と表示
-    window.setLayout(layout)
+    # 右側のお題表示エリア
+    right_area = QVBoxLayout()
+
+    # お題ウィジェット
+    prompt_path = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "data", "prompt.json"))
+    prompt_widget = PromptWidget(prompt_path)
+    right_area.addWidget(prompt_widget)
+
+    # レイアウト設定
+    root_layout = QHBoxLayout()
+    root_layout.addLayout(left_controls)
+    root_layout.addLayout(right_area)
+
+    # 表示
+    window.setLayout(root_layout)
     window.show()
     app.processEvents()
     try:

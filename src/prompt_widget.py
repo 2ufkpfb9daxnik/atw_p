@@ -21,6 +21,8 @@ class PromptWidget(QWidget):
         layout.addWidget(self.preedit_label)
         self.setLayout(layout)
 
+        self.conversionenabled = False
+
         # 子が希望サイズを持つようにポリシーを設定
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
 
