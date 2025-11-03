@@ -46,6 +46,7 @@ def main():
 
     # レイアウト設定と表示
     window.setLayout(layout)
+    window.adjustSize()
     window.show()
     app.exec()
 
