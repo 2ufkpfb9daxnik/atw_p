@@ -8,7 +8,7 @@ def main():
     app = QApplication([])
 
     # フォント読み込み
-    font_path = "../assets/NotoSansJP-Regular.ttf"
+    font_path = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "assets", "NotoSansJP-Regular.ttf"))
     if os.path.exists(font_path):
         font_id = QFontDatabase.addApplicationFont(font_path)
         if font_id != -1:
@@ -22,7 +22,7 @@ def main():
     layout = QVBoxLayout()
 
     # お題ウィジェット
-    prompt_path = "./prompt_widget.py"
+    prompt_path = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "data", "prompt.json"))
     prompt_widget = PromptWidget(prompt_path)
     layout.addWidget(prompt_widget)
 
