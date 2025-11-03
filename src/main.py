@@ -46,8 +46,13 @@ def main():
 
     # レイアウト設定と表示
     window.setLayout(layout)
-    window.adjustSize()
     window.show()
+    app.processEvents()
+    try:
+        prompt_widget.updateGeometry()
+    except Exception:
+        pass
+    window.adjustSize()
     app.exec()
 
 if __name__ == "__main__":

@@ -9,9 +9,9 @@ class PromptWidget(QWidget):
         self.kana_label = QLabel("かな文")
         self.preedit_label = QLabel("打鍵列")
 
-        self.text_label.setWordWrap(True)
+        self.text_label.setWordWrap(False)
         self.text_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-        self.kana_label.setWordWrap(True)
+        self.kana_label.setWordWrap(False)
         self.kana_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         self.preedit_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
