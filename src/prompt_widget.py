@@ -10,7 +10,7 @@ class PromptWidget(QWidget):
         self.start_button.clicked.connect(self.on_start_clicked)
 
         # タイマー残り時間表示ラベル
-        self.time_label = QLabel("残り時間: 00:00")
+        self.time_label = QLabel("00:00")
         self.time_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
         self.text_label = QLabel("漢字仮名交じり文")
