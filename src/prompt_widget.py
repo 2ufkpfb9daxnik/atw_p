@@ -21,7 +21,7 @@ class PromptWidget(QWidget):
         layout.addWidget(self.preedit_label)
         self.setLayout(layout)
 
-        self.conversionenabled = False
+        self._conversion_enabled = False
 
         # 子が希望サイズを持つようにポリシーを設定
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
@@ -29,10 +29,28 @@ class PromptWidget(QWidget):
         if prompt_path:
             self.load_and_show_first(prompt_path)
 
+    @property
+    def conversion_enabled(self) -> bool:
+        return bool(self._conversion_enabled)
+    
+    @conversion_enabled.setter
+    def conversion_enabled(self, v: bool):
+        print(f"PromptWidget: set conversion_enabled to {v}")
+        self._conversion_enabled = bool(v)
+        # 変換ありなら、kana_labelを隠す
+        self.kana_label.setVisible(not self._conversion_enabled)
+        # レイアウト・親ウィンドウを更新してサイズを再計算させる
+        self.updateGeometry()
+        top = self.window()
+        if top is not None:
+            top.adjustSize()
+
     def set_prompt(self, text: str, kana: str = ""):
         self.text_label.setText(text)
         self.kana_label.setText(kana)
         self.preedit_label.setText("")
+        # conversion_enabledの状態に応じて表示を更新
+        self.kana_label.setVisible(not self._conversion_enabled)
         # 自分のジオメトリを更新してから親を再調整する
         self.updateGeometry()
         top = self.window()
@@ -56,10 +74,14 @@ class PromptWidget(QWidget):
             self.set_prompt("お題読み込み失敗", "")
 
     def sizeHint(self) -> QSize:
-        # 希望幅をテキストの長さとフォントから計算
-        fontMetrics = self.kana_label.fontMetrics()
-        text = self.kana_label.text() or ""
+        if self._conversion_enabled:
+            fontMetrics = self.text_label.fontMetrics()
+            text = self.text_label.text() or ""
+        else:
+            fontMetrics = self.kana_label.fontMetrics()
+            text = self.kana_label.text() or ""
         width = fontMetrics.horizontalAdvance(text) + 20  # 余白分を追加
-        # 高さはデフォルトのまま
+        # 高さは各ラベルの高さの合計
         height = self.text_label.sizeHint().height() + self.kana_label.sizeHint().height() + self.preedit_label.sizeHint().height()
-        return QSize(width, height)
+        return QSize(max(100, width), height)
+    

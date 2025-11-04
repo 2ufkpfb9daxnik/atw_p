@@ -32,29 +32,39 @@ def main():
     left_controls.addWidget(convert_checkbox_on)
     left_controls.addWidget(convert_checkbox_off)
 
+    prompt_widget = None
+
     def on_convert(checked: bool):
-        if checked:
-            convert_checkbox_off.blockSignals(True)
-            convert_checkbox_off.setChecked(False)
-            convert_checkbox_off.blockSignals(False)
-            prompt_widget.conversion_enabled = True
-        else:
-            if not convert_checkbox_off.isChecked():
-                convert_checkbox_on.blockSignals(True)
-                convert_checkbox_on.setChecked(True)
-                convert_checkbox_on.blockSignals(False)
-    
-    def off_convert(checked: bool):
-        if checked:
+        print(f"on_convert called with checked = {checked}")
+        # 択一で常にどちらかがONにしたいので、OFFにしようとしたら元に戻す
+        if not checked:
             convert_checkbox_on.blockSignals(True)
-            convert_checkbox_on.setChecked(False)
+            convert_checkbox_on.setChecked(True)
             convert_checkbox_on.blockSignals(False)
+            return
+        # checked == True: もう一方をオフにして状態適用
+        convert_checkbox_off.blockSignals(True)
+        convert_checkbox_off.setChecked(False)
+        convert_checkbox_off.blockSignals(False)
+        # prompt_widgetが作成済みならプロパティ経由で反映
+        if prompt_widget is not None:
+            prompt_widget.conversion_enabled = True
+
+    def off_convert(checked: bool):
+        print(f"off_convert called with checked = {checked}")
+        # 択一で常にどちらかがONにしたいので、OFFにしようとしたら元に戻す
+        if not checked:
+            convert_checkbox_off.blockSignals(True)
+            convert_checkbox_off.setChecked(True)
+            convert_checkbox_off.blockSignals(False)
+            return
+        # checked == True: もう一方をオフにして状態適用
+        convert_checkbox_on.blockSignals(True)
+        convert_checkbox_on.setChecked(False)
+        convert_checkbox_on.blockSignals(False)
+        # prompt_widgetが作成済みならプロパティ経由で反映
+        if prompt_widget is not None:
             prompt_widget.conversion_enabled = False
-        else:
-            if not convert_checkbox_on.isChecked():
-                convert_checkbox_off.blockSignals(True)
-                convert_checkbox_off.setChecked(True)
-                convert_checkbox_off.blockSignals(False)
 
     convert_checkbox_on.toggled.connect(on_convert)
     convert_checkbox_off.toggled.connect(off_convert)
@@ -83,6 +93,8 @@ def main():
     # お題ウィジェット
     prompt_path = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "data", "prompt.json"))
     prompt_widget = PromptWidget(prompt_path)
+    # 初期状態をprompt_widgetに反映
+    prompt_widget._conversion_enabled = False
     right_area.addWidget(prompt_widget)
 
     # レイアウト設定
