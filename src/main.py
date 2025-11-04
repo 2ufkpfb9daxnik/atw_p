@@ -22,9 +22,7 @@ def main():
 
     # 左側のコントロール群
     left_controls = QVBoxLayout()
-    left_controls.addStretch()#空きスペースを伸ばして上に寄せる
-
-    # 変換モード切替チェックボックス
+    # 変換モード切替チェックボックス(上寄せ)
     convert_checkbox_on = QCheckBox("変換あり")
     convert_checkbox_off = QCheckBox("変換なし")
     convert_checkbox_on.setChecked(False)
@@ -32,8 +30,13 @@ def main():
     left_controls.addWidget(convert_checkbox_on)
     left_controls.addWidget(convert_checkbox_off)
 
+    # 中央の伸縮領域でスペースを確保
+    left_controls.addStretch()
+
+    # prompt_widgetを参照するため先にNoneを置いておく
     prompt_widget = None
 
+    # 相互排他かつ「すでにONのものをクリックしてもOFFにしない」ハンドラ
     def on_convert(checked: bool):
         print(f"on_convert called with checked = {checked}")
         # 択一で常にどちらかがONにしたいので、OFFにしようとしたら元に戻す
