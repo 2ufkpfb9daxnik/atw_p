@@ -4,14 +4,23 @@ from PyQt6.QtWidgets import (
     QPushButton, QComboBox, QTimeEdit
 )
 from PyQt6.QtCore import Qt, QSize, QTime
+from PyQt6.QtGui import QKeySequence, QShortcut
 from timer import TimerController
 
 class PromptWidget(QWidget):
     def __init__(self, prompt_path: str | None = None, parent=None):
         super().__init__(parent)
         # 計測開始ボタン
-        self.start_button = QPushButton("開始")
+        self.start_button = QPushButton("開始[s]")
         self.start_button.clicked.connect(self.on_start_clicked)
+
+        # ショートカットキーの設定(sで計測開始)
+        self._shortcut_s = QShortcut(QKeySequence("s"), self)
+        self._shortcut_s.activated.connect(self.on_s_pressed)
+
+        # ショートカットキーの設定(ESCで計測停止)
+        self.shortcut_esc = QShortcut(QKeySequence("Esc"), self)
+        self.shortcut_esc.activated.connect(self.on_escape_pressed)
 
         # タイマー選択 (1分 / 1時間 /カスタム)
         self.duration_selector = QComboBox()
@@ -45,8 +54,8 @@ class PromptWidget(QWidget):
         # 計測開始ボタン、選択、残り時間を横並びで配置
         timer_top = QHBoxLayout()
         timer_top.addWidget(self.start_button)
-        timer_top.addWidget(self.duration_selector)
         timer_top.addWidget(self.time_label)
+        timer_top.addWidget(self.duration_selector)
         timer_top.addWidget(self.time_edit)
         timer_top.addStretch()
         layout.addLayout(timer_top)
@@ -113,11 +122,38 @@ class PromptWidget(QWidget):
             self.duration_selector.setEnabled(False)
             self.time_edit.setEnabled(False)
             self._timer.start(seconds)
-            self.start_button.setText("停止")
+            self.start_button.setText("停止[Esc]")
         else:
             print("Start button clicked -> stop timer")
             self._timer.stop()
             self._on_timer_finished()
+
+    def on_s_pressed(self):
+        print(f"s key pressed -> start timer")
+        if not hasattr(self, "_timer") or not self._timer.is_running():
+            if self.duration_selector.currentText() == "カスタム":
+                time = self.time_edit.time()
+                seconds = time.hour() * 3600 + time.minute() * 60 + time.second()
+                if seconds <= 0:
+                    print("カスタム時間が0秒以下のため計測を開始できません")
+                    return
+            else:
+                seconds = self._initial_seconds
+            print(f"Start (shortcut) -> start {seconds}s timer")
+            self.duration_selector.setEnabled(False)
+            self.time_edit.setEnabled(False)
+            self._timer.start(seconds)
+            self.start_button.setText("停止[Esc]")
+        else:
+            print("s pressed (no-op): timer already running")
+    
+    def on_escape_pressed(self):
+        if hasattr(self, "_timer") and self._timer.is_running():
+            print("Escape key pressed -> stop timer")
+            self._timer.stop()
+            self._on_timer_finished()
+        else:
+            print("Escape pressed (no-op): timer not running")
 
     # TimeContollerから呼ばれるコールバック(残り秒数を受け取る)
     def _on_timer_tick_callback(self, remaining: int):
@@ -127,7 +163,7 @@ class PromptWidget(QWidget):
     # タイマー終了時コールバック
     def _on_timer_finished(self):
         print("timer finished or stopped")
-        self.start_button.setText("開始")
+        self.start_button.setText("開始[s]")
         # セレクタとtime_editを有効化
         self.duration_selector.setEnabled(True)
         # カスタム選択時のみtime_editを有効化
