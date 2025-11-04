@@ -1,6 +1,7 @@
 import json
 from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QSizePolicy, QPushButton
-from PyQt6.QtCore import Qt, QSize, QTimer
+from PyQt6.QtCore import Qt, QSize
+from timer import TimerController
 
 class PromptWidget(QWidget):
     def __init__(self, prompt_path: str | None = None, parent=None):
@@ -41,53 +42,38 @@ class PromptWidget(QWidget):
         # 子が希望サイズを持つようにポリシーを設定
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
 
-        self._timer = QTimer(self)
-        self._timer.setInterval(1000)
-        self._timer.timeout.connect(self._on_timer_tick)
-        self._remaining_seconds = 0
-        self._timer_running = False
+        self._timer = TimerController(self,
+                                     tick_callback = self._on_timer_tick_callback,
+                                     finished_callback = self._on_timer_finished)
 
         if prompt_path:
             self.load_and_show_first(prompt_path)
 
     def on_start_clicked(self):
         # 押したら開始、実行中に押すと停止
-        if not self._timer_running:
+        if not self._timer.is_running():
             print("Start button clicked -> start 60s timer")
-            self._start_timer(seconds=60)
+            self._timer.start(60)
+            self.start_button.setText("停止")
         else:
             print("Start button clicked -> stop timer")
-            self._stop_timer()
+            self._timer.stop()
+            self._on_timer_finished()
 
-    def _start_timer(self, seconds: int):
-        self._remaining_seconds = int(seconds)
-        self._update_time_label()
-        self._timer.start()
-        self._timer_running = True
-        self.start_button.setText("停止")
+    # TimeContollerから呼ばれるコールバック(残り秒数を受け取る)
+    def _on_timer_tick_callback(self, remaining: int):
+        print(f"timer tick: remaining={remaining}")
+        self._set_time_label_from_seconds(remaining)
 
-    def _stop_timer(self):
-        self._timer.stop()
-        self._timer_running = False
+    def _on_timer_finished(self):
+        print("timer finished or stopped")
         self.start_button.setText("計測開始")
-        self._remaining_seconds = 0
-        self._update_time_label()
+        # 表示は00:00にリセット
+        self._set_time_label_from_seconds(0)
 
-    def _on_timer_tick(self):
-        if self._remaining_seconds > 0:
-            self._remaining_seconds -= 1
-            self._update_time_label()
-            print(f"timer tick: remaining={self._remaining_seconds}")
-            if self._remaining_seconds == 0:
-                print("timer finished")
-                self._stop_timer()
-        
-        else:
-            self._stop_timer()
-
-    def _update_time_label(self):
-        minutes = self._remaining_seconds // 60
-        seconds = self._remaining_seconds % 60
+    def _set_time_label_from_seconds(self, seconds: int):
+        minutes = seconds // 60
+        seconds = seconds % 60
         self.time_label.setText(f"{minutes:02}:{seconds:02}")
 
     @property
