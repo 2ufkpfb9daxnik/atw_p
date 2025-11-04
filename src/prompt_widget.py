@@ -63,6 +63,9 @@ class PromptWidget(QWidget):
         layout.addWidget(self.text_label)
         layout.addWidget(self.kana_label)
         layout.addWidget(self.preedit_label)
+        # お題はここに行グループを追加していく(text, (kana,) preeditのグループを縦に積む)
+        self.content_layout = QVBoxLayout()
+        layout.addLayout(self.content_layout)
         self.setLayout(layout)
 
         self._conversion_enabled = False
@@ -209,17 +212,62 @@ class PromptWidget(QWidget):
             top.adjustSize()
 
     def set_prompt(self, text: str, kana: str = ""):
-        self.text_label.setText(text)
-        self.kana_label.setText(kana)
-        self.preedit_label.setText("")
-        # conversion_enabledの状態に応じて表示を更新
-        self.kana_label.setVisible(not self._conversion_enabled)
-        # 自分のジオメトリを更新してから親を再調整する
+        # 古い行グループを削除
+        while self.content_layout.count():
+            it = self.content_layout.takeAt(0)
+            widget = it.widget()
+            if widget:
+                widget.deleteLater()
+            else:
+                # レイアウトが残っている場合は中身を削除
+                sub = it.layout()
+                if sub:
+                    while sub.count():
+                        it2 = sub.takeAt(0)
+                        widget2 = it2.widget()
+                        if widget2:
+                            widget2.deleteLater()
+            
+        def chunks(s: str, n: int):
+            return [s[i:i+n] for i in range(0, len(s), n)] if s else []
+
+        text_chunks = chunks(text, 20)
+        kana_chunks = chunks(kana, 20)
+        max_chunks = max(1, len(text_chunks), len(kana_chunks))
+
+        # 各チャンクについてグループ(QWidget)を作ってcontent_layoutに追加
+        for i in range(max_chunks):
+            row_widget = QWidget()
+            row_layout = QVBoxLayout(row_widget)
+            # text
+            text = text_chunks[i] if i < len(text_chunks) else ""
+            label_text = QLabel(text)
+            label_text.setWordWrap(False)
+            label_text.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+            row_layout.addWidget(label_text)
+            # kana(変換ありモードでは表示しない)
+            if not self._conversion_enabled:
+                kana = kana_chunks[i] if i < len(kana_chunks) else ""
+                label_kana = QLabel(kana)
+                label_kana.setWordWrap(False)
+                label_kana.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+                row_layout.addWidget(label_kana)
+            # predit(今は空だが順序を保つため追加)
+            label_predit = QLabel("")
+            label_predit.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+            row_layout.addWidget(label_predit)
+            
+            # マージンを小さくして詰める
+            row_layout.setContentsMargins(0, 0, 0, 0)
+            row_layout.setSpacing(2)
+
+            self.content_layout.addWidget(row_widget)
+        
         self.updateGeometry()
         top = self.window()
         if top is not None:
             top.adjustSize()
-        
+
     def set_preedit(self, preedit: str):
         self.preedit_label.setText(preedit)
 
