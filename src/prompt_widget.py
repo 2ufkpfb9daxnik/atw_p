@@ -9,6 +9,10 @@ class PromptWidget(QWidget):
         self.start_button = QPushButton("計測開始")
         self.start_button.clicked.connect(self.on_start_clicked)
 
+        # タイマー残り時間表示ラベル
+        self.time_label = QLabel("残り時間: 00:00")
+        self.time_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+
         self.text_label = QLabel("漢字仮名交じり文")
         self.kana_label = QLabel("かな文")
         self.preedit_label = QLabel("打鍵列")
@@ -21,10 +25,11 @@ class PromptWidget(QWidget):
 
         layout = QVBoxLayout()
         # 計測開始ボタンを左寄せにするために水平レイアウトに配置してから垂直レイアウトへ追加
-        button_layout = QHBoxLayout()
-        button_layout.addWidget(self.start_button)
-        button_layout.addStretch()
-        layout.addLayout(button_layout)
+        timer_layout = QHBoxLayout()
+        timer_layout.addWidget(self.start_button)
+        timer_layout.addWidget(self.time_label)
+        timer_layout.addStretch()
+        layout.addLayout(timer_layout)
 
         layout.addWidget(self.text_label)
         layout.addWidget(self.kana_label)
@@ -36,11 +41,54 @@ class PromptWidget(QWidget):
         # 子が希望サイズを持つようにポリシーを設定
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
 
+        self._timer = QTimer(self)
+        self._timer.setInterval(1000)
+        self._timer.timeout.connect(self._on_timer_tick)
+        self._remaining_seconds = 0
+        self._timer_running = False
+
         if prompt_path:
             self.load_and_show_first(prompt_path)
 
     def on_start_clicked(self):
-        print("Start button clicked")
+        # 押したら開始、実行中に押すと停止
+        if not self._timer_running:
+            print("Start button clicked -> start 60s timer")
+            self._start_timer(seconds=60)
+        else:
+            print("Start button clicked -> stop timer")
+            self._stop_timer()
+
+    def _start_timer(self, seconds: int):
+        self._remaining_seconds = int(seconds)
+        self._update_time_label()
+        self._timer.start()
+        self._timer_running = True
+        self.start_button.setText("停止")
+
+    def _stop_timer(self):
+        self._timer.stop()
+        self._timer_running = False
+        self.start_button.setText("計測開始")
+        self._remaining_seconds = 0
+        self._update_time_label()
+
+    def _on_timer_tick(self):
+        if self._remaining_seconds > 0:
+            self._remaining_seconds -= 1
+            self._update_time_label()
+            print(f"timer tick: remaining={self._remaining_seconds}")
+            if self._remaining_seconds == 0:
+                print("timer finished")
+                self._stop_timer()
+        
+        else:
+            self._stop_timer()
+
+    def _update_time_label(self):
+        minutes = self._remaining_seconds // 60
+        seconds = self._remaining_seconds % 60
+        self.time_label.setText(f"{minutes:02}:{seconds:02}")
 
     @property
     def conversion_enabled(self) -> bool:
