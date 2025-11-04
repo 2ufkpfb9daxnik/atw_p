@@ -1,10 +1,14 @@
 import json
-from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QSizePolicy
-from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QSizePolicy, QPushButton
+from PyQt6.QtCore import Qt, QSize, QTimer
 
 class PromptWidget(QWidget):
     def __init__(self, prompt_path: str | None = None, parent=None):
         super().__init__(parent)
+        # 計測開始ボタン
+        self.start_button = QPushButton("計測開始")
+        self.start_button.clicked.connect(self.on_start_clicked)
+
         self.text_label = QLabel("漢字仮名交じり文")
         self.kana_label = QLabel("かな文")
         self.preedit_label = QLabel("打鍵列")
@@ -16,6 +20,12 @@ class PromptWidget(QWidget):
         self.preedit_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
         layout = QVBoxLayout()
+        # 計測開始ボタンを左寄せにするために水平レイアウトに配置してから垂直レイアウトへ追加
+        button_layout = QHBoxLayout()
+        button_layout.addWidget(self.start_button)
+        button_layout.addStretch()
+        layout.addLayout(button_layout)
+
         layout.addWidget(self.text_label)
         layout.addWidget(self.kana_label)
         layout.addWidget(self.preedit_label)
@@ -28,6 +38,9 @@ class PromptWidget(QWidget):
 
         if prompt_path:
             self.load_and_show_first(prompt_path)
+
+    def on_start_clicked(self):
+        print("Start button clicked")
 
     @property
     def conversion_enabled(self) -> bool:
