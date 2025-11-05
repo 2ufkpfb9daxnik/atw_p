@@ -279,31 +279,42 @@ class PromptWidget(QWidget):
             label_text.setWordWrap(False)
             label_text.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
             row_layout.addWidget(label_text)
-            # preedit: QLineEditにして、変換ありのときのみ編集可能にする
+
+            # preeditの扱い
+            # 変換ありモードでは、編集可能なQLineEdit
+            # 変換なしモードでは、何も表示しないが、将来的にpreeditを表示するためのプレースホルダを置いておく
             preedit_text = ""
             if i < len(self._last_preedits):
                 preedit_text = self._last_preedits[i]
-            elif i < len(prev_preedits):
-                preedit_text = prev_preedits[i]
-            preedit_edit = QLineEdit(preedit_text)
-            preedit_edit.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-            # 変換ありモードの時だけ編集可能にする(Trueで入力可)
-            preedit_edit.setEnabled(bool(self._conversion_enabled))
-            # Enterで確定。indexをラムダで束縛して渡す
-            preedit_edit.returnPressed.connect(lambda index = i, widget = preedit_edit: self._on_preedit_entered(index, widget.text()))
-            row_layout.addWidget(preedit_edit)
+            
+            if bool(self._conversion_enabled):
+                # 変換あり: QLineEditを追加して編集可能にする
+                preedit_edit = QLineEdit(preedit_text)
+                preedit_edit.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+                preedit_edit.setEnabled(True)
+                preedit_edit.returnPressed.connect(lambda index = i, widget = preedit_edit: self._on_preedit_entered(index, widget.text()))
+                row_layout.addWidget(preedit_edit)
+            else:
+                # 変換なし: プレースホルダをQLabelで確保
+                placeholder = QLabel("")
+                # 高さは既存のpreedit_labelのsizeHintを参考にする
+                placeholder_height = max(8, self.preedit_label.sizeHint().height())
+                placeholder.setFixedHeight(placeholder_height + 2)
+                row_layout.addWidget(placeholder)
+            
             # kana(変換ありモードでは表示しない)
             if not self._conversion_enabled:
-                kana = kana_chunks[i] if i < len(kana_chunks) else ""
-                label_kana = QLabel(kana)
+                kana_chunk = kana_chunks[i] if i < len(kana_chunks) else ""
+                label_kana = QLabel(kana_chunk)
                 label_kana.setWordWrap(False)
                 label_kana.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
                 row_layout.addWidget(label_kana)
-            # predit(今は空だが順序を保つため追加)
-            label_predit = QLabel("")
-            label_predit.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-            row_layout.addWidget(label_predit)
-            
+
+            # preedit(今は空だが順序を保つため追加)
+            label_preedit = QLabel("")
+            label_preedit.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+            row_layout.addWidget(label_preedit)
+
             # マージンを小さくして詰める
             row_layout.setContentsMargins(0, 0, 0, 0)
             row_layout.setSpacing(2)
@@ -314,6 +325,15 @@ class PromptWidget(QWidget):
         top = self.window()
         if top is not None:
             top.adjustSize()
+
+    def _on_preedit_entered(self, index: int, text: str):
+        # インデックスの範囲を拡張してから保存
+        if index < 0:
+            return
+        while len(self._last_preedits) <= index:
+            self._last_preedits.append("")
+        self._last_preedits[index] = text
+        print(f"_on_preedit_entered: index={index}, text='{text}'")
 
     @property
     def line_length(self) -> int:
