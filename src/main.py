@@ -22,9 +22,7 @@ def main():
 
     # 左側のコントロール群
     left_controls = QVBoxLayout()
-    left_controls.addStretch()#空きスペースを伸ばして上に寄せる
-
-    # 変換モード切替チェックボックス
+    # 変換モード切替チェックボックス(上寄せ)
     convert_checkbox_on = QCheckBox("変換あり")
     convert_checkbox_off = QCheckBox("変換なし")
     convert_checkbox_on.setChecked(False)
@@ -32,29 +30,44 @@ def main():
     left_controls.addWidget(convert_checkbox_on)
     left_controls.addWidget(convert_checkbox_off)
 
+    # 中央の伸縮領域でスペースを確保
+    left_controls.addStretch()
+
+    # prompt_widgetを参照するため先にNoneを置いておく
+    prompt_widget = None
+
+    # 相互排他かつ「すでにONのものをクリックしてもOFFにしない」ハンドラ
     def on_convert(checked: bool):
-        if checked:
-            convert_checkbox_off.blockSignals(True)
-            convert_checkbox_off.setChecked(False)
-            convert_checkbox_off.blockSignals(False)
-            prompt_widget.conversion_enabled = True
-        else:
-            if not convert_checkbox_off.isChecked():
-                convert_checkbox_on.blockSignals(True)
-                convert_checkbox_on.setChecked(True)
-                convert_checkbox_on.blockSignals(False)
-    
-    def off_convert(checked: bool):
-        if checked:
+        print(f"on_convert called with checked = {checked}")
+        # 択一で常にどちらかがONにしたいので、OFFにしようとしたら元に戻す
+        if not checked:
             convert_checkbox_on.blockSignals(True)
-            convert_checkbox_on.setChecked(False)
+            convert_checkbox_on.setChecked(True)
             convert_checkbox_on.blockSignals(False)
+            return
+        # checked == True: もう一方をオフにして状態適用
+        convert_checkbox_off.blockSignals(True)
+        convert_checkbox_off.setChecked(False)
+        convert_checkbox_off.blockSignals(False)
+        # prompt_widgetが作成済みならプロパティ経由で反映
+        if prompt_widget is not None:
+            prompt_widget.conversion_enabled = True
+
+    def off_convert(checked: bool):
+        print(f"off_convert called with checked = {checked}")
+        # 択一で常にどちらかがONにしたいので、OFFにしようとしたら元に戻す
+        if not checked:
+            convert_checkbox_off.blockSignals(True)
+            convert_checkbox_off.setChecked(True)
+            convert_checkbox_off.blockSignals(False)
+            return
+        # checked == True: もう一方をオフにして状態適用
+        convert_checkbox_on.blockSignals(True)
+        convert_checkbox_on.setChecked(False)
+        convert_checkbox_on.blockSignals(False)
+        # prompt_widgetが作成済みならプロパティ経由で反映
+        if prompt_widget is not None:
             prompt_widget.conversion_enabled = False
-        else:
-            if not convert_checkbox_on.isChecked():
-                convert_checkbox_off.blockSignals(True)
-                convert_checkbox_off.setChecked(True)
-                convert_checkbox_off.blockSignals(False)
 
     convert_checkbox_on.toggled.connect(on_convert)
     convert_checkbox_off.toggled.connect(off_convert)
@@ -83,6 +96,8 @@ def main():
     # お題ウィジェット
     prompt_path = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "data", "prompt.json"))
     prompt_widget = PromptWidget(prompt_path)
+    # 初期状態をprompt_widgetに反映
+    prompt_widget._conversion_enabled = False
     right_area.addWidget(prompt_widget)
 
     # レイアウト設定
