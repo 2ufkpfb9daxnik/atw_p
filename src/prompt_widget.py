@@ -73,7 +73,7 @@ class PromptWidget(QWidget):
         self._conversion_enabled = False
 
         # 行長のデフォルト
-        self._line_length = 20
+        self._line_length = 25
 
         # 最後に表示した元テキスト(再描画用)
         self._last_text = None
