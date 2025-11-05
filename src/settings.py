@@ -17,17 +17,32 @@ class SettingsWindow(QWidget):
         # 現在のフォントサイズ表示
         self.current_size = QLabel(str(self._current_font_size()))
         layout.addWidget(self.current_size)
-
         # スピンボックス
-        self.spin = QSpinBox()
-        self.spin.setRange(8, 255)
-        self.spin.setValue(self._current_font_size())
-        layout.addWidget(self.spin)
-        
+        self.font_size_spin = QSpinBox()
+        self.font_size_spin.setRange(8, 255)
+        self.font_size_spin.setValue(self._current_font_size())
+        layout.addWidget(self.font_size_spin)
         # フォントサイズを変更するのを決定するボタン
-        apply_button = QPushButton("適用")
-        apply_button.clicked.connect(self.on_apply)
-        layout.addWidget(apply_button)
+        font_size_apply_button = QPushButton("適用")
+        font_size_apply_button.clicked.connect(self.on_font_size_apply)
+        layout.addWidget(font_size_apply_button)
+
+        # 改行の閾値設定
+        # タイトル
+        self.label = QLabel("1行当たりの文字数")
+        layout.addWidget(self.label)
+        # 現在の1行当たりの文字数表示
+        self.current_line_length = QLabel(str(self._current_line_length()))
+        layout.addWidget(self.current_line_length)
+        # スピンボックス
+        self.line_length_spin = QSpinBox()
+        self.line_length_spin.setRange(8, 255)
+        self.line_length_spin.setValue(self._current_line_length())
+        layout.addWidget(self.line_length_spin)
+        # 1行当たりの文字数を変更するのを決定するボタン
+        line_length_apply_button = QPushButton("適用")
+        line_length_apply_button.clicked.connect(self.on_line_length_apply)
+        layout.addWidget(line_length_apply_button)
 
         # 設定ウィンドウを閉じるボタン
         close_button = QPushButton("閉じる")
@@ -40,9 +55,25 @@ class SettingsWindow(QWidget):
         if pointSize == -1:
             pointSize = 20
         return pointSize
+
+    def _current_line_length(self) -> int:
+        # トップレベルウィジェットからPromptWidgetを探して現在のline_lengthを返す
+        try:
+            from prompt_widget import PromptWidget
+        except Exception:
+            return 20
+        for widget in QApplication.topLevelWidgets():
+            if isinstance(widget, PromptWidget):
+                # PromptWidget自体ではなくその内部のウィジェットかもしれないので再帰的に探索
+                # 直接PromptWidgetのインスタンスを見つけたら値を取得
+                try:
+                    return max(8, int(getattr(widget, 'line_length', 20)))
+                except Exception:
+                    return 20
+        return 20
     
-    def on_apply(self):
-        new_size = int(self.spin.value())
+    def on_font_size_apply(self):
+        new_size = int(self.font_size_spin.value())
         # 現在のフォントサイズのラベル更新
         self.current_size.setText(str(new_size))
         # アプリ全体のフォントを更新
@@ -51,6 +82,35 @@ class SettingsWindow(QWidget):
         else:
             font = QFont("", new_size)
         self.app.setFont(font)
+
+    def on_line_length_apply(self):
+        new_length = int(self.line_length_spin.value())
+        # ラベル更新
+        self.current_line_length.setText(str(new_length))
+        # トップレベルのPromptWidgetに反映
+        try:
+            from prompt_widget import PromptWidget
+        except Exception:
+            return
+        for widget in QApplication.topLevelWidgets():
+            # もしトップレベルがPromptWidgetの親ウィンドウなら、その中を探索
+            if isinstance(widget, PromptWidget):
+                try:
+                    widget.line_length = new_length
+                except Exception:
+                    pass
+            else:
+                # ウィンドウ内の子を探索してPromptWidgetを探す
+                def recurse_and_set(widget):
+                    try:
+                        for child in widget.findChildren(PromptWidget):
+                            try:
+                                child.line_length = new_length
+                            except Exception:
+                                pass
+                    except Exception:
+                        pass
+                recurse_and_set(widget)
 
         # ジオメトリ/レイアウトを再計算してウィンドウが縮むようにする
         QApplication.processEvents()
