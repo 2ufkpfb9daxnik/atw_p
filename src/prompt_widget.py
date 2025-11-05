@@ -1,7 +1,7 @@
 import json
 from PyQt6.QtWidgets import (
     QWidget, QLabel, QVBoxLayout, QHBoxLayout, QSizePolicy, 
-    QPushButton, QComboBox, QTimeEdit
+    QPushButton, QComboBox, QTimeEdit, QLineEdit
 )
 from PyQt6.QtCore import Qt, QSize, QTime
 from PyQt6.QtGui import QKeySequence, QShortcut
@@ -78,6 +78,8 @@ class PromptWidget(QWidget):
         # 最後に表示した元テキスト(再描画用)
         self._last_text = None
         self._last_kana = None
+        # 最後に入力したpreeditのリスト(行ごと)
+        self._last_preedits = []
 
         # 子が希望サイズを持つようにポリシーを設定
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
@@ -228,6 +230,21 @@ class PromptWidget(QWidget):
         self._last_text = text
         self._last_kana = kana
 
+        # 既存のpreedit入力内容を収集して保持(再描画後に復元するため)
+        prev_preedits = []
+        for i in range(self.content_layout.count()):
+            item = self.content_layout.itemAt(i)
+            widget = item.widget()
+            if widget:
+                # QLineEditを探す
+                edits = widget.findChildren(QLineEdit)
+                if edits:
+                    prev_preedits.append(edits[0].text())
+                else:
+                    prev_preedits.append("")
+        if prev_preedits:
+            self._last_preedits = prev_preedits
+
         # 古い行グループを削除
         while self.content_layout.count():
             it = self.content_layout.takeAt(0)
@@ -262,6 +279,19 @@ class PromptWidget(QWidget):
             label_text.setWordWrap(False)
             label_text.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
             row_layout.addWidget(label_text)
+            # preedit: QLineEditにして、変換ありのときのみ編集可能にする
+            preedit_text = ""
+            if i < len(self._last_preedits):
+                preedit_text = self._last_preedits[i]
+            elif i < len(prev_preedits):
+                preedit_text = prev_preedits[i]
+            preedit_edit = QLineEdit(preedit_text)
+            preedit_edit.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+            # 変換ありモードの時だけ編集可能にする(Trueで入力可)
+            preedit_edit.setEnabled(bool(self._conversion_enabled))
+            # Enterで確定。indexをラムダで束縛して渡す
+            preedit_edit.returnPressed.connect(lambda index = i, widget = preedit_edit: self._on_preedit_entered(index, widget.text()))
+            row_layout.addWidget(preedit_edit)
             # kana(変換ありモードでは表示しない)
             if not self._conversion_enabled:
                 kana = kana_chunks[i] if i < len(kana_chunks) else ""
