@@ -67,6 +67,9 @@ class PromptWidget(QWidget):
 
         # お題はここに行グループを追加していく(text, (kana,) preeditのグループを縦に積む)
         self.content_layout = QVBoxLayout()
+        # 行間を埋める
+        self.content_layout.setSpacing(0)
+        self.content_layout.setContentsMargins(0, 0, 0, 0)
         layout.addLayout(self.content_layout)
         self.setLayout(layout)
 
@@ -278,46 +281,50 @@ class PromptWidget(QWidget):
             label_text = QLabel(text)
             label_text.setWordWrap(False)
             label_text.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+            # 高さをコンパクトに固定気味にする
+            label_text.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+            label_text.setFixedHeight(self.fontMetrics().height() + 4)
             row_layout.addWidget(label_text)
 
-            # preeditの扱い
-            # 変換ありモードでは、編集可能なQLineEdit
-            # 変換なしモードでは、何も表示しないが、将来的にpreeditを表示するためのプレースホルダを置いておく
+            # preeditの復元テキスト
             preedit_text = ""
             if i < len(self._last_preedits):
                 preedit_text = self._last_preedits[i]
-            
+
             if bool(self._conversion_enabled):
-                # 変換あり: QLineEditを追加して編集可能にする
+                # 変換あり: 編集可能な QLineEdit を追加 (kana は表示しない)
                 preedit_edit = QLineEdit(preedit_text)
                 preedit_edit.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
                 preedit_edit.setEnabled(True)
-                preedit_edit.returnPressed.connect(lambda index = i, widget = preedit_edit: self._on_preedit_entered(index, widget.text()))
+                preedit_edit.textChanged.connect(lambda index=i, widget=preedit_edit: self._on_preedit_entered(index, widget.text()))
+                preedit_edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+                preedit_edit.setFixedHeight(self.fontMetrics().height() + 6)
                 row_layout.addWidget(preedit_edit)
+                # 変換ありでは余分な空行 (placeholder) は追加しない
             else:
-                # 変換なし: プレースホルダをQLabelで確保
-                placeholder = QLabel("")
-                # 高さは既存のpreedit_labelのsizeHintを参考にする
-                placeholder_height = max(8, self.preedit_label.sizeHint().height())
-                placeholder.setFixedHeight(placeholder_height + 2)
-                row_layout.addWidget(placeholder)
-            
-            # kana(変換ありモードでは表示しない)
-            if not self._conversion_enabled:
+                # 変換なし: text, kana, preedit(表示のみ) の順で表示する
                 kana_chunk = kana_chunks[i] if i < len(kana_chunks) else ""
                 label_kana = QLabel(kana_chunk)
                 label_kana.setWordWrap(False)
                 label_kana.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+                label_kana.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+                label_kana.setFixedHeight(self.fontMetrics().height() + 4)
                 row_layout.addWidget(label_kana)
 
-            # preedit(今は空だが順序を保つため追加)
-            label_preedit = QLabel("")
-            label_preedit.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-            row_layout.addWidget(label_preedit)
+                # preedit は読み取り専用ラベルで復元して表示（空でも高さを確保）
+                placeholder = QLabel(preedit_text)
+                placeholder.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+                if not preedit_text:
+                    placeholder_height = max(8, self.preedit_label.sizeHint().height())
+                    placeholder.setFixedHeight(placeholder_height + 2)
+                else:
+                    placeholder.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+                    placeholder.setFixedHeight(self.fontMetrics().height() + 6)
+                row_layout.addWidget(placeholder)
 
-            # マージンを小さくして詰める
+            # マージン・間隔を詰める（行間の余白をなくす）
             row_layout.setContentsMargins(0, 0, 0, 0)
-            row_layout.setSpacing(2)
+            row_layout.setSpacing(0)
 
             self.content_layout.addWidget(row_widget)
         
